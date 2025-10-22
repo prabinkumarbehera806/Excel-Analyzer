@@ -1,48 +1,44 @@
 import pandas as pd
+from natsort import natsorted
 
-def ct_analysis(df):
-    """
-    Returns CT pivoted dataframe with natural-sorted columns.
-    Expects df to have columns: Station_ID, Date_Time, PCode, Result
-    """
+def analyze_excel(file):
+    # Read the Excel file
+    df = pd.read_excel(file)
+
+    # Keep relevant columns
     relevant_data = df[['Station_ID', 'Date_Time', 'PCode', 'Result']].copy()
-    relevant_data_ct = relevant_data[relevant_data['Station_ID'] == 'CT'].copy()
 
-    ct_pivot = relevant_data_ct.pivot(index='Date_Time', columns='PCode', values='Result')
-    ct_pivot.reset_index(inplace=True)
+    # Convert datetime
+    relevant_data['Date_Time'] = pd.to_datetime(relevant_data['Date_Time']).dt.date
 
-    # Natural sort columns if natsort is available, otherwise do a normal sort
-    try:
-        from natsort import natsorted
-        cols = ['Date_Time'] + natsorted([c for c in ct_pivot.columns if c != 'Date_Time'])
-        ct_pivot = ct_pivot[cols]
-    except Exception:
-        # fallback: keep Date_Time first, then alphabetical
-        cols = ['Date_Time'] + sorted([c for c in ct_pivot.columns if c != 'Date_Time'])
-        ct_pivot = ct_pivot[cols]
+    # Split by Station
+    rd_ct = relevant_data[relevant_data['Station_ID'] == 'CT'][['Station_ID', 'Date_Time', 'PCode', 'Result']]
+    rd_tus = relevant_data[relevant_data['Station_ID'] == 'TUS'][['Station_ID', 'Date_Time', 'PCode', 'Result']]
 
-    return ct_pivot
+    # Pivot
+    ct_pivot = rd_ct.pivot_table(
+        index=['Station_ID', 'Date_Time'],
+        columns='PCode',
+        values='Result',
+        aggfunc='mean',
+        fill_value=' '
+    )
+    tus_pivot = rd_tus.pivot_table(
+        index=['Station_ID', 'Date_Time'],
+        columns='PCode',
+        values='Result',
+        aggfunc='mean',
+        fill_value=' '
+    )
 
+    # Sort columns naturally
+    ct_pivot = ct_pivot[natsorted(ct_pivot.columns)]
+    tus_pivot = tus_pivot[natsorted(tus_pivot.columns)]
 
-def tus_analysis(df):
-    """
-    Returns TUS pivoted dataframe with natural-sorted columns.
-    Expects df to have columns: Station_ID, Date_Time, PCode, Result
-    """
-    relevant_data = df[['Station_ID', 'Date_Time', 'PCode', 'Result']].copy()
-    relevant_data_tus = relevant_data[relevant_data['Station_ID'] == 'TUS'].copy()
+    # Save to Excel
+    ct_output = 'CT Analysis.xlsx'
+    tus_output = 'TUS Analysis.xlsx'
+    ct_pivot.to_excel(ct_output, index=True)
+    tus_pivot.to_excel(tus_output, index=True)
 
-    tus_pivot = relevant_data_tus.pivot(index='Date_Time', columns='PCode', values='Result')
-    tus_pivot.reset_index(inplace=True)
-
-    # Natural sort columns if natsort is available, otherwise do a normal sort
-    try:
-        from natsort import natsorted
-        cols = ['Date_Time'] + natsorted([c for c in tus_pivot.columns if c != 'Date_Time'])
-        tus_pivot = tus_pivot[cols]
-    except Exception:
-        # fallback: keep Date_Time first, then alphabetical
-        cols = ['Date_Time'] + sorted([c for c in tus_pivot.columns if c != 'Date_Time'])
-        tus_pivot = tus_pivot[cols]
-
-    return tus_pivot
+    return ct_output, tus_output
