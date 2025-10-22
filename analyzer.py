@@ -1,32 +1,48 @@
 import pandas as pd
 
 def ct_analysis(df):
-    # Select relevant columns
+    """
+    Returns CT pivoted dataframe with natural-sorted columns.
+    Expects df to have columns: Station_ID, Date_Time, PCode, Result
+    """
     relevant_data = df[['Station_ID', 'Date_Time', 'PCode', 'Result']].copy()
-
-    # Filter for Station CT
     relevant_data_ct = relevant_data[relevant_data['Station_ID'] == 'CT'].copy()
 
-    # Pivot the CT data
     ct_pivot = relevant_data_ct.pivot(index='Date_Time', columns='PCode', values='Result')
-
-    # Reset index so it looks cleaner in Excel
     ct_pivot.reset_index(inplace=True)
+
+    # Natural sort columns if natsort is available, otherwise do a normal sort
+    try:
+        from natsort import natsorted
+        cols = ['Date_Time'] + natsorted([c for c in ct_pivot.columns if c != 'Date_Time'])
+        ct_pivot = ct_pivot[cols]
+    except Exception:
+        # fallback: keep Date_Time first, then alphabetical
+        cols = ['Date_Time'] + sorted([c for c in ct_pivot.columns if c != 'Date_Time'])
+        ct_pivot = ct_pivot[cols]
 
     return ct_pivot
 
 
 def tus_analysis(df):
-    # Select relevant columns
+    """
+    Returns TUS pivoted dataframe with natural-sorted columns.
+    Expects df to have columns: Station_ID, Date_Time, PCode, Result
+    """
     relevant_data = df[['Station_ID', 'Date_Time', 'PCode', 'Result']].copy()
-
-    # Filter for Station TUS
     relevant_data_tus = relevant_data[relevant_data['Station_ID'] == 'TUS'].copy()
 
-    # Pivot the TUS data
     tus_pivot = relevant_data_tus.pivot(index='Date_Time', columns='PCode', values='Result')
-
-    # Reset index so it looks cleaner in Excel
     tus_pivot.reset_index(inplace=True)
+
+    # Natural sort columns if natsort is available, otherwise do a normal sort
+    try:
+        from natsort import natsorted
+        cols = ['Date_Time'] + natsorted([c for c in tus_pivot.columns if c != 'Date_Time'])
+        tus_pivot = tus_pivot[cols]
+    except Exception:
+        # fallback: keep Date_Time first, then alphabetical
+        cols = ['Date_Time'] + sorted([c for c in tus_pivot.columns if c != 'Date_Time'])
+        tus_pivot = tus_pivot[cols]
 
     return tus_pivot
